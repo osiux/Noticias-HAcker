@@ -92,7 +92,7 @@ class RegisterHandler(webapp.RequestHandler):
     session = get_current_session()
     nickname = helper.sanitizeHtml(self.request.get('nickname'))
     password = helper.sanitizeHtml(self.request.get('password'))
-    
+
     if len(nickname) > 1 and len(password) > 1:
       password = User.slow_hash(password);
       already = User.all().filter("lowercase_nickname =",nickname.lower()).fetch(1)
@@ -119,7 +119,7 @@ class NewPasswordHandler(webapp.RequestHandler):
       forgotten_password_error = session.pop('forgotten_password_error')
     if session.has_key('forgotten_password_ok'):
       forgotten_password_ok = session.pop('forgotten_password_ok')
-    
+
     if session.has_key('user'):
       user = session['user']
       self.redirect('/logout')
@@ -129,7 +129,7 @@ class NewPasswordHandler(webapp.RequestHandler):
   def post(self):
     session = get_current_session()
     email = helper.sanitizeHtml(self.request.get('email'))
-    if len(email) > 1:      
+    if len(email) > 1:
       users = User.all().filter("email =", email).fetch(1)
       if len(users) == 1:
         if session.is_active():
@@ -140,19 +140,19 @@ class NewPasswordHandler(webapp.RequestHandler):
         ticket.put()
         code = ticket.code
         host = self.request.url.replace(self.request.path,'',1)
-       
+
         mail.send_mail(sender="NoticiasHacker <dfectuoso@noticiashacker.com>",
           to=user.nickname + "<"+user.email+">",
           subject="Liga para restablecer password",
           html=template.render('templates/mail/forgotten-password-email.html', locals()),
           body=template.render('templates/mail/forgotten-password-email-plain.html', locals()))
-      
+
         session['forgotten_password_ok'] = "Se ha enviado un correo electrónico a tu bandeja de entrada con las instrucciones"
       else:
         session['forgotten_password_error'] = "El correo electronico <strong>"+ email +"</strong> no existe en nuestra base de datos"
     else:
       session['forgotten_password_error'] = "Debes especificar tu correo electrónico"
-     
+
     self.redirect('/olvide-el-password')
 
 class RecoveryHandler(webapp.RequestHandler):
@@ -161,7 +161,7 @@ class RecoveryHandler(webapp.RequestHandler):
     code = helper.parse_post_id(code)
     if session.has_key('error'):
       error = session['error']
-    
+
     ticket = Ticket.all().filter('code',code).filter('is_active',True).fetch(1)
     if len(ticket) == 1:
       ticket = ticket[0]
@@ -250,7 +250,7 @@ class ProfileHandler(webapp.RequestHandler):
           pass
         user.put()
         my_profile = True
-        session['profile_saved'] = True 
+        session['profile_saved'] = True
         self.redirect('/perfil/' + user.nickname)
       else:
         self.redirect('/')
@@ -263,11 +263,11 @@ class PostHandler(webapp.RequestHandler):
     session = get_current_session()
     if session.has_key('user'):
       user = session['user']
-    
+
     try:
       post = Post.all().filter('nice_url =', helper.parse_post_id( post_id ) ).get()
       if  post  == None: #If for some reason the post doesn't have a nice url, we try the id. This is also the case of all old stories
-        post = db.get( helper.parse_post_id( post_id ) ) 
+        post = db.get( helper.parse_post_id( post_id ) )
 
       comments = Comment.all().filter("post =", post.key()).order("-karma").fetch(1000)
       comments = helper.order_comment_list_in_memory(comments)
@@ -275,7 +275,7 @@ class PostHandler(webapp.RequestHandler):
       display_post_title = True
       prefetch.prefetch_posts_list([post])
       if helper.is_json(post_id):
-        comments_json = [c.to_json() for c in comments if not c.father_ref()] 
+        comments_json = [c.to_json() for c in comments if not c.father_ref()]
         if(self.request.get('callback')):
           self.response.headers['Content-Type'] = "application/javascript"
           self.response.out.write(self.request.get('callback')+'('+simplejson.dumps({'post':post.to_json(),'comments':comments_json})+')')
@@ -297,7 +297,7 @@ class PostHandler(webapp.RequestHandler):
         try:
           post = Post.all().filter('nice_url =', helper.parse_post_id( post_id ) ).get()
           if post  == None: #If for some reason the post doesn't have a nice url, we try the id. This is also the case of all old stories
-            post = db.get( helper.parse_post_id( post_id ) ) 
+            post = db.get( helper.parse_post_id( post_id ) )
 
           post.remove_from_memcache()
           comment = Comment(message=message,user=user,post=post)
@@ -349,7 +349,7 @@ class EditPostHandler(webapp.RequestHandler):
         else:
           self.redirect('/')
       except db.BadKeyError:
-        self.redirect('/')  
+        self.redirect('/')
     else:
       self.redirect('/')
 
@@ -420,7 +420,7 @@ class EditCommentHandler(webapp.RequestHandler):
         else:
           self.redirect('/')
       except db.BadKeyError:
-        self.redirect('/')  
+        self.redirect('/')
     else:
       self.redirect('/')
 
@@ -444,7 +444,7 @@ class SubmitNewStoryHandler(webapp.RequestHandler):
     title = helper.sanitizeHtml(self.request.get('title'))
     message = helper.sanitizeHtml(self.request.get('message'))
     nice_url = helper.sluglify(title)
-    
+
     if session.has_key('user'):
       if len(nice_url) > 0:
         user = session['user']
@@ -693,9 +693,9 @@ class RssHandler(webapp.RequestHandler):
         rss_poster = post.message
       rss_poster += ' por <a href="'+helper.base_url(self)+'/perfil/'+post.user.nickname+'">'+post.user.nickname+'</a>'
 
-      link = helper.base_url(self)+'/noticia/' + str(post.key()),
+      link = helper.base_url(self)+'/noticia/' + str(post.key())
       if post.nice_url:
-        link = helper.base_url(self)+'/noticia/' + str(post.nice_url),
+        link = helper.base_url(self)+'/noticia/' + str(post.nice_url)
 
       items.append(PyRSS2Gen.RSSItem(
           title = post.title,
@@ -749,7 +749,7 @@ class NotificationsInboxHandler(webapp.RequestHandler):
         prevPage = realPage
       if (page * perPage) < Notification.all().filter("target_user =",user).filter("read =",False).count():
         nextPage = page + 1
- 
+
       notifications = Notification.all().filter("target_user =",user).filter("read =",False).order("-created").fetch(perPage,perPage * realPage)
       prefetch.prefetch_refprops(notifications,Notification.post,Notification.comment,Notification.sender_user)
       self.response.out.write(template.render('templates/notifications.html', locals()))
@@ -771,7 +771,7 @@ class NotificationsInboxAllHandler(webapp.RequestHandler):
         prevPage = realPage
       if (page * perPage) < Notification.all().filter("target_user =",user).count():
         nextPage = page + 1
- 
+
       notifications = Notification.all().filter("target_user =",user).order("-created").fetch(perPage,perPage * realPage)
       prefetch.prefetch_refprops(notifications,Notification.post,Notification.comment,Notification.sender_user)
       self.response.out.write(template.render('templates/notifications.html', locals()))
